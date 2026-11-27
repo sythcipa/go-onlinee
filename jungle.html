@@ -1,0 +1,346 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jungle Adventure</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #102c20;
+    color: white;
+    text-align: center;
+}
+
+h1 {
+    padding: 15px;
+    color: #ffe66d;
+}
+
+#game {
+    width: 900px;
+    max-width: 95%;
+    height: 450px;
+    margin: 10px auto;
+    position: relative;
+    overflow: hidden;
+    border: 5px solid #654321;
+    border-radius: 12px;
+    background: linear-gradient(#62c5dc, #c5e8a5);
+}
+
+.mountain {
+    position: absolute;
+    bottom: 110px;
+    width: 0;
+    height: 0;
+    border-left: 150px solid transparent;
+    border-right: 150px solid transparent;
+    border-bottom: 190px solid #527c55;
+}
+
+.m1 { left: 50px; }
+.m2 { left: 350px; border-bottom-color: #729c65; }
+.m3 { left: 650px; }
+
+.waterfall {
+    position: absolute;
+    right: 100px;
+    top: 90px;
+    width: 35px;
+    height: 170px;
+    background: #b8f5ff;
+    border-radius: 0 0 20px 20px;
+    opacity: 0.8;
+}
+
+.tree {
+    position: absolute;
+    bottom: 75px;
+    width: 35px;
+    height: 130px;
+    background: #754321;
+}
+
+.tree::before {
+    content: "";
+    position: absolute;
+    width: 110px;
+    height: 100px;
+    background: #176b35;
+    border-radius: 50%;
+    left: -38px;
+    top: -65px;
+}
+
+.t1 { left: 70px; }
+.t2 { left: 450px; }
+.t3 { left: 790px; }
+
+#ground {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 75px;
+    background: #80502b;
+    border-top: 12px solid #368b35;
+}
+
+#player {
+    position: absolute;
+    bottom: 75px;
+    left: 70px;
+    width: 45px;
+    height: 55px;
+    font-size: 42px;
+    z-index: 5;
+}
+
+.object {
+    position: absolute;
+    bottom: 75px;
+    font-size: 35px;
+    z-index: 4;
+}
+
+.coin {
+    color: gold;
+}
+
+#score {
+    font-size: 20px;
+    margin: 10px;
+}
+
+#message {
+    font-size: 22px;
+    color: #ffe66d;
+    margin: 10px;
+}
+
+button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 10px;
+    background: #f4b942;
+    color: #222;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 8px;
+}
+
+button:hover {
+    background: #ffdb70;
+}
+
+#instructions {
+    margin: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌴 JUNGLE ADVENTURE 🌴</h1>
+
+<div id="score">Score: 0 🪙</div>
+
+<div id="game">
+
+    <div class="mountain m1"></div>
+    <div class="mountain m2"></div>
+    <div class="mountain m3"></div>
+
+    <div class="waterfall"></div>
+
+    <div class="tree t1"></div>
+    <div class="tree t2"></div>
+    <div class="tree t3"></div>
+
+    <div id="ground"></div>
+
+    <div id="player">🧑‍🌾</div>
+
+</div>
+
+<div id="message">Get ready for your adventure!</div>
+
+<button onclick="startGame()">START GAME</button>
+<button onclick="jump()">JUMP</button>
+
+<p id="instructions">
+    Press SPACE or click JUMP to avoid obstacles!
+</p>
+
+<script>
+const game = document.getElementById("game");
+const player = document.getElementById("player");
+const scoreText = document.getElementById("score");
+const message = document.getElementById("message");
+
+let score = 0;
+let jumping = false;
+let running = false;
+let playerBottom = 75;
+let objects = [];
+let gameSpeed = 5;
+let spawnTimer;
+let gameLoop;
+let finish = 0;
+
+function jump() {
+    if (!running || jumping) return;
+
+    jumping = true;
+
+    let height = 0;
+    const jumpTimer = setInterval(() => {
+        height += 8;
+        player.style.bottom = (75 + height) + "px";
+
+        if (height >= 145) {
+            clearInterval(jumpTimer);
+
+            const fallTimer = setInterval(() => {
+                height -= 8;
+                player.style.bottom = (75 + height) + "px";
+
+                if (height <= 0) {
+                    clearInterval(fallTimer);
+                    player.style.bottom = "75px";
+                    jumping = false;
+                }
+            }, 20);
+        }
+    }, 20);
+}
+
+document.addEventListener("keydown", function(e) {
+    if (e.code === "Space" || e.code === "ArrowUp") {
+        e.preventDefault();
+        jump();
+    }
+});
+
+function createObject() {
+    if (!running) return;
+
+    const types = [
+        { icon: "🪨", type: "enemy" },
+        { icon: "🐍", type: "enemy" },
+        { icon: "👽", type: "coin" },
+        { icon: "🍌", type: "coin" },
+        { icon: "🎁", type: "treasure" }
+    ];
+
+    const selected = types[Math.floor(Math.random() * types.length)];
+
+    const obj = document.createElement("div");
+    obj.className = "object";
+    obj.textContent = selected.icon;
+    obj.dataset.type = selected.type;
+    obj.style.left = "900px";
+
+    if (selected.type === "coin") {
+        obj.style.bottom = "145px";
+    }
+
+    game.appendChild(obj);
+    objects.push(obj);
+}
+
+function startGame() {
+    clearInterval(gameLoop);
+    clearInterval(spawnTimer);
+
+    objects.forEach(obj => obj.remove());
+    objects = [];
+
+    score = 0;
+    gameSpeed = 5;
+    finish = 0;
+    jumping = false;
+    running = true;
+
+    player.style.bottom = "75px";
+    scoreText.textContent = "Score: 0 🪙";
+    message.textContent = "Collect coins and reach the finish line!";
+
+    spawnTimer = setInterval(createObject, 1500);
+
+    gameLoop = setInterval(updateGame, 30);
+}
+
+function updateGame() {
+    if (!running) return;
+
+    finish++;
+
+    if (finish >= 1800) {
+        endGame(true);
+        return;
+    }
+
+    objects.forEach((obj, index) => {
+        let x = parseFloat(obj.style.left);
+        x -= gameSpeed;
+        obj.style.left = x + "px";
+
+        const playerRect = player.getBoundingClientRect();
+        const objRect = obj.getBoundingClientRect();
+
+        const collision =
+            playerRect.right > objRect.left + 8 &&
+            playerRect.left < objRect.right - 8 &&
+            playerRect.bottom > objRect.top + 8 &&
+            playerRect.top < objRect.bottom - 8;
+
+        if (collision) {
+            if (obj.dataset.type === "enemy") {
+                endGame(false);
+                return;
+            }
+
+            if (obj.dataset.type === "coin" ||
+                obj.dataset.type === "treasure") {
+                score += obj.dataset.type === "treasure" ? 5 : 1;
+                scoreText.textContent = "Score: " + score + " 🪙";
+                obj.remove();
+                objects.splice(index, 1);
+            }
+        }
+
+        if (x < -50) {
+            obj.remove();
+            objects.splice(index, 1);
+        }
+    });
+}
+
+function endGame(won) {
+    running = false;
+    clearInterval(gameLoop);
+    clearInterval(spawnTimer);
+
+    message.textContent = won
+        ? "🏆 YOU WIN! You reached the finish line!"
+        : "💥 GAME OVER! Try again!";
+
+    if (won) {
+        score += 10;
+        scoreText.textContent = "Score: " + score + " 🪙";
+    }
+}
+</script>
+
+</body>
+</html>
